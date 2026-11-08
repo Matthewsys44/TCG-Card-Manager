@@ -1,0 +1,68 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>TCG 3D Ultra</title><script src="https://cloudflare.com"></script>
+<style>
+body{font-family:sans-serif;margin:0;padding:0;overflow:hidden;background:#05070a;user-select:none;-webkit-user-select:none;}
+#c3d{width:100vw;height:100vh;display:block;}
+.hud-bar{position:absolute;top:15px;left:15px;right:15px;display:flex;justify-content:space-between;pointer-events:none;gap:10px;}
+.hud-card{background:rgba(15,22,33,0.95);color:#fff;border:1px solid #2e374a;padding:10px 15px;border-radius:10px;font-weight:bold;box-shadow:0 6px 20px rgba(0,0,0,0.6);pointer-events:auto;font-size:13px;}
+.menu-box{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,0.98);padding:15px;border-radius:14px;box-shadow:0 6px 25px rgba(0,0,0,0.7);width:92%;max-width:420px;text-align:center;box-sizing:border-box;}
+h2{margin-top:0;font-size:16px;color:#1a202c;font-weight:bold;} .w-txt{color:#FFD700;font-size:24px;font-weight:bold;text-shadow:1px 2px 4px #000;margin-bottom:8px;}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;}
+.m-btn{padding:14px 4px;font-weight:bold;color:white;border:none;border-radius:8px;cursor:pointer;font-size:13px;box-shadow:0 3px 6px rgba(0,0,0,0.3);}
+.order-btn{background:#2b6cb0;} .stock-btn{background:#2f855a;} .shop-btn{background:#4a5568;} .pack-btn{background:#975a16;animation:glow 1.5s infinite;}
+@keyframes glow{0%{box-shadow:0 0 5px #FFD700;}50%{box-shadow:0 0 18px #FFD700;}100%{box-shadow:0 0 5px #FFD700;}}
+.sub-page{display:none;} .sub-page.active{display:block;}
+.bk-btn{background:none;border:1px solid #718096;padding:4px 10px;border-radius:4px;cursor:pointer;color:#718096;font-weight:bold;font-size:12px;float:left;}
+.row{display:flex;justify-content:space-between;align-items:center;margin-top:15px;font-size:13px;border-top:1px solid #e2e8f0;padding-top:10px;color:#333;}
+.sm-btn{padding:6px 12px;font-weight:bold;color:white;border:none;border-radius:4px;cursor:pointer;background:#4a5568;}
+.c-pull{border:2px solid #D4AF37;background:#fffdf3;border-radius:10px;padding:12px;text-align:center;margin-top:10px;}
+</style></head><body>
+<canvas id="c3d"></canvas>
+<div class="hud-bar">
+    <div class="hud-card" style="border-left:4px solid #48bb78;">💰 Cash: $<span id="cashBox">50.00</span></div>
+    <div class="hud-card" style="border-left:4px solid #4299e1;">⭐ Lvl: <span id="lvlBox">1</span> (<span id="xpBox">0</span> XP)</div>
+    <div class="hud-card" style="border-left:4px solid #ed8936;">📦 Stock: <span id="stockBox">0</span> Packs</div>
+</div>
+<div class="menu-box">
+    <div id="m-home" class="sub-page active"><div class="w-txt">TCG Shop Simulator 3D</div><h2>Manager Terminal</h2>
+        <div class="grid">
+            <button class="m-btn order-btn" onclick="openPage('order')">📦 Wholesale</button>
+            <button class="m-btn stock-btn" onclick="openPage('stock')">📋 Price Tag</button>
+            <button class="m-btn shop-btn" onclick="spawnCustomer()">🔔 Customer Walk-In</button>
+            <button class="m-btn pack-btn" onclick="openPage('pack')">✨ Open Booster</button>
+        </div></div>
+    <div id="m-order" class="sub-page"><button class="bk-btn" onclick="openPage('home')">← Back</button><h2>Wholesale</h2><div class="row"><div><strong>TGC Booster Box (10 Packs)</strong><br>Wholesale: $35.00</div><button class="sm-btn" style="background:#2b6cb0;" onclick="buyBox()">Order Box</button></div></div>
+    <div id="m-stock" class="sub-page"><button class="bk-btn" onclick="openPage('home')">← Back</button><h2>Pricing System</h2><div class="row"><div><strong>Pack Shelf Price</strong><br>Current: $<span id="lblPrice">5.00</span></div><div><button class="sm-btn" onclick="adjustPrice(-0.50)">-0.50</button><button class="sm-btn" onclick="adjustPrice(0.50)">+0.50</button></div></div></div>
+    <div id="m-pack" class="sub-page"><button class="bk-btn" onclick="openPage('home')">← Back</button><h2>TCG Pack Openings</h2><button class="go-btn" style="width:100%;padding:12px;background:#975a16;color:white;border:none;border-radius:6px;font-weight:bold;cursor:pointer;margin-top:10px;" onclick="ripPack()">Rip Booster Pack</button><div id="cardResult" class="c-pull" style="display:none;"><div style="font-weight:bold;color:#b7791f;font-size:17px;" id="cName">Ghost Rare Dragon</div><div style="font-size:11px;color:#d69e2e;font-weight:bold;margin:2px 0;" id="cRare">SECRET MYTHIC</div><div style="font-weight:bold;color:#2f855a;" id="cVal">Sold pull: +$180.00</div></div></div>
+</div>
+<script>
+let cash=50,stock=0,price=5,shopLevel=1,shopXP=0;
+const CARD_POOL=[{n:"Giga Squirrel",r:"Common",v:0.1,p:75,c:"#718096",art:"#a0aec0"},{n:"Plague Goblin",r:"Uncommon Foil",v:1.5,p:19,c:"#2f855a",art:"#48bb78"},{n:"Chronos Mage",r:"Rare Holo",v:14,p:5.3,c:"#2b6cb0",art:"#4299e1"},{n:"Void Dragon",r:"Secret Mythic",v:180,p:0.7,c:"#b7791f",art:"#ffd700"}];
+const audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+function playSound(type){
+    if(audioCtx.state==='suspended')audioCtx.resume();const osc=audioCtx.createOscillator(),gain=audioCtx.createGain();osc.connect(gain);gain.connect(audioCtx.destination);
+    if(type==='chime'){osc.type='sine';osc.frequency.setValueAtTime(880,audioCtx.currentTime);gain.gain.setValueAtTime(0.2,audioCtx.currentTime);gain.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.4);osc.start();osc.stop(audioCtx.currentTime+0.4);}
+    else if(type==='rip'){const bSize=audioCtx.sampleRate*0.15,buf=audioCtx.createBuffer(1,bSize,audioCtx.sampleRate),d=buf.getChannelData(0);for(let i=0;i<bSize;i++)d[i]=Math.random()*2-1;const n=audioCtx.createBufferSource();n.buffer=buf;const f=audioCtx.createBiquadFilter();f.type='bandpass';f.frequency.value=1000;n.connect(f);f.connect(gain);gain.gain.setValueAtTime(0.3,audioCtx.currentTime);gain.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.15);n.start();n.stop(audioCtx.currentTime+0.15);}
+}
+function generateCardTexture(card){
+    const canvas=document.createElement('canvas');canvas.width=256;canvas.height=384;const ctx=canvas.getContext('2d');ctx.fillStyle="#fffdf3";ctx.fillRect(0,0,256,384);ctx.lineWidth=12;ctx.strokeStyle=card.c;ctx.strokeRect(0,0,256,384);ctx.fillStyle=card.art;ctx.fillRect(24,40,208,180);ctx.fillStyle="#1a202c";ctx.font="bold 18px sans-serif";ctx.fillText(card.n,28,250);ctx.font="bold 13px sans-serif";ctx.fillStyle=card.c;ctx.fillText(`Rarity: ${card.r}`,28,275);ctx.font="12px sans-serif";ctx.fillStyle="#718096";ctx.fillText("TCG Game Studio Collector Asset",28,350);return new THREE.CanvasTexture(canvas);
+}
+const canvas=document.getElementById('c3d'),scene=new THREE.Scene();scene.background=new THREE.Color(0x0a0e14);scene.fog=new THREE.FogExp2(0x0a0e14,0.04);
+const camera=new THREE.PerspectiveCamera(60,window.innerWidth/window.innerHeight,0.1,1000);camera.position.set(0,4.2,7.2);camera.lookAt(0,1.4,0);
+const renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true});renderer.setSize(window.innerWidth,window.innerHeight);renderer.shadowMap.enabled=true;
+scene.add(new THREE.AmbientLight(0xffffff,0.4));const mainLight=new THREE.DirectionalLight(0xffffff,0.8);mainLight.position.set(4,8,4);mainLight.castShadow=true;scene.add(mainLight);
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(24,24),new THREE.MeshStandardMaterial({color:0x1f2937,roughness:0.5}));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;scene.add(floor);
+const backWall=new THREE.Mesh(new THREE.BoxGeometry(24,8,0.2),new THREE.MeshStandardMaterial({color:0x111827,roughness:0.9}));backWall.position.set(0,4,-5);scene.add(backWall);
+const counterTop=new THREE.Mesh(new THREE.BoxGeometry(4.4,0.1,1.4), new THREE.MeshStandardMaterial({color:0x7c2d12,roughness:0.2}));counterTop.position.set(0,1.25,0);counterTop.castShadow=true;scene.add(counterTop);
+const counterBase=new THREE.Mesh(new THREE.BoxGeometry(4.2,1.2,1.2),new THREE.MeshStandardMaterial({color:0x1e3a8a,roughness:0.7}));counterBase.position.set(0,0.6,0);counterBase.castShadow=true;scene.add(counterBase);
+const displayRack=new THREE.Mesh(new THREE.BoxGeometry(3.2,4.5,0.4),new THREE.MeshStandardMaterial({color:0x374151}));displayRack.position.set(0,2.25,-4.7);scene.add(displayRack);
+const rackPlank=new THREE.Mesh(new THREE.BoxGeometry(3.0,0.05,0.8),new THREE.MeshStandardMaterial({color:0x111827}));rackPlank.position.set(0,1.8,-4.3);scene.add(rackPlank);
+const boxGroup=new THREE.Group();boxGroup.position.set(-1.4,1.55,0);scene.add(boxGroup);const boxMat=new THREE.MeshStandardMaterial({color:0x9a3412,roughness:0.9});boxGroup.add(new THREE.Mesh(new THREE.BoxGeometry(1.0,0.5,0.8),boxMat));
+const cardMesh=new THREE.Mesh(new THREE.BoxGeometry(0.8,1.2,0.03),new THREE.MeshStandardMaterial({color:0xffffff}));cardMesh.position.set(0,2.1,0);cardMesh.castShadow=true;scene.add(cardMesh);
+let customerMesh=null,customerState="none";
+function buildDetailedCustomer(){
+    const group=new THREE.Group(),clothes=[0xde781f,0x1f8ade,0x1fde68,0x901fde],randCloth=clothes[Math.floor(Math.random()*clothes.length)],skin=[0xffdbac,0xf1c27d,0xe0ac69][Math.floor(Math.random()*3)];
+    group.add(new THREE.Mesh(new THREE.BoxGeometry(0.44,0.15,0.44),new THREE.MeshStandardMaterial({color:0x452205})));customerMesh=group;customerMesh.children[0].position.y=1.95;
+    group.add(new THREE.Mesh(new THREE.BoxGeometry(0.4,0.4,0.4),new THREE.MeshStandardMaterial({color:skin})));customerMesh.children[1].position.y=1.75;
+    group.add(new THREE.Mesh(new THREE.BoxGeometry(0.7,1.0,0.4),new THREE.MeshStandardMaterial({color:randCloth})));customerMesh.children[2].position.y=1.05;
+    group.add(new THREE.Mesh(new THREE.BoxGeometry(0.2,0.55,0.25),new THREE.MeshStandardMaterial({color:0x1f2937})));customerMesh.children[3].position.set(-0.18,0.28,0);
